@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"bsky.watch/labeler/server"
@@ -222,12 +223,13 @@ func processBatch(ctx context.Context, s *server.Server) {
     }
 
     // TODO: use their mapping from scores to labels, or create our own?
-    for i, label := range classifResp.Labels {
+    for i, labelText := range classifResp.Labels {
+        labelVal := strings.ReplaceAll(strings.ToLower(labelText), " ", "-")
         label := atproto.LabelDefs_Label{
             Cts: time.Now().UTC().Format(time.RFC3339),
             Src: "did:plc:tlyhc6cyka6ehsests75oivf", 
             Uri: batch[i].Uri,
-            Val: label,
+            Val: labelVal,
         }
         // TODO: write to DB
         if s != nil {
