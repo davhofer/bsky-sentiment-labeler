@@ -17,15 +17,15 @@ import (
 
 // Setup configures zerolog and returns a context with a logger attached.
 func Setup(ctx context.Context, logfile string, format string, level zerolog.Level) context.Context {
-	logFile := os.Stderr
+    if logfile == "" {
+        formattedTime := time.Now().Format("02.01.2006-15.04")
+        logfile = "labeler-" + formattedTime + ".log"
+    }
 
-	if logfile != "" {
-		f, err := os.OpenFile(logfile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			log.Fatalf("Failed to open the specified log file %q: %s", logfile, err)
-		}
-		logFile = f
-	}
+    logFile, err := os.OpenFile(logfile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+    if err != nil {
+        log.Fatalf("Failed to open the specified log file %q: %s", logfile, err)
+    }
 
 	var output io.Writer
 

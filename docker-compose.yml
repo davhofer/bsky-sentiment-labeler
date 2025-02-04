@@ -16,10 +16,21 @@ services:
     environment:
       POSTGRES_DB: labels
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?specify password in .env file}"
-    command: [
-      "-c", "max_connections=1000",
-      ]
+    command: ["-c", "max_connections=1000"]
     stop_grace_period: 24h
+  sentimentclassifier:
+    build:
+      context: ./sentiment-classifier
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+      - ./sentiment-classifier:/app
+      - ./sentiment-classifier/logs:/app/logs
+    ports:
+      - "${WEBSERVER_PORT:-7080}:7080"
+    depends_on:
+      postgres:
+        condition: service_healthy
   labeler:
     build: .
     restart: always
@@ -29,11 +40,9 @@ services:
       - "${CONFIG_FILE:-./config.yaml}:/config.yaml:ro"
     ports:
       - "${LISTEN_ADDR:-0.0.0.0:8080}:8080"
-    command: [
-      "--config=/config.yaml",
-      "--log-level=0",
-      "--listen-addr=:8080",
-    ]
+    command: ["--config=/config.yaml", "--log-level=0", "--listen-addr=:8080"]
     depends_on:
       postgres:
+        condition: service_healthy
+      sentimentclassifier:
         condition: service_healthy

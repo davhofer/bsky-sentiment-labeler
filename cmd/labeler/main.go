@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+    "time"
 	"net/http"
 	"os"
 
@@ -15,6 +16,7 @@ import (
 
 	"bsky.watch/labeler/account"
 	"bsky.watch/labeler/config"
+	"bsky.watch/labeler/ingestion"
 	"bsky.watch/labeler/logging"
 	"bsky.watch/labeler/server"
 	"bsky.watch/labeler/simpleapi"
@@ -57,6 +59,7 @@ func runMain(ctx context.Context) error {
 		}
 	}
 
+    // TODO: improve frontend?
 	if *adminAddr != "" {
 		frontend := simpleapi.New(server)
 		mux := http.NewServeMux()
@@ -80,9 +83,17 @@ func runMain(ctx context.Context) error {
 		}()
 	}
 
+    // TODO: correct?
+    go ingestion.RunJetstreamConsumer(ctx, server)
+
 	mux := http.NewServeMux()
 	mux.Handle("/xrpc/com.atproto.label.subscribeLabels", server.Subscribe())
 	mux.Handle("/xrpc/com.atproto.label.queryLabels", server.Query())
+
+
+
+    // TODO: how to handle teardown/exit of all systems gracefully?
+    go ingestion.RunJetstreamConsumer(ctx, server)
 
 	log.Info().Msgf("Starting HTTP listener...")
 	return http.ListenAndServe(*listenAddr, mux)
@@ -90,6 +101,11 @@ func runMain(ctx context.Context) error {
 
 func main() {
 	flag.Parse()
+
+    if *logFile == "" {
+        formattedTime := time.Now().Format("02.01.2006-15.04")
+        *logFile = "labeler-" + formattedTime + ".log"
+    }
 
 	ctx := logging.Setup(context.Background(), *logFile, *logFormat, zerolog.Level(*logLevel))
 	log := zerolog.Ctx(ctx)
