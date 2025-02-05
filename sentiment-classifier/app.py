@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from transformers import pipeline
 from pydantic import BaseModel
 
-model_name = "tabularisai/multilingual-sentiment-analsis"
+model_name = "tabularisai/multilingual-sentiment-analysis"
 sentiment_pipeline = pipeline("text-classification", model=model_name)
 
 
