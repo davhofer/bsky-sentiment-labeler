@@ -24,6 +24,12 @@ import (
 // idea: use a worker pool to process incoming events and label them?
 // bottleneck sentiment classifier?
 
+// TODO: configure logging, read log directory from environment vars
+
+const (
+    jetstreamPerfLogIntervalSeconds = 5
+)
+
 const (
 	serverAddr = "wss://jetstream.atproto.tools/subscribe"
 )
@@ -35,9 +41,14 @@ type PostEvent struct {
 	Text string `json:"text"`
 }
 
+var debugJetstreamOnly bool
+
+
 // TODO: can i just run this as a goroutine? do i need to make sure it doesn't exit?
 func RunJetstreamConsumer(ctx context.Context, s *server.Server) {
     // TODO: args from main func? context?
+
+    debugJetstreamOnly = s == nil
     
     formattedTime := time.Now().Format("02.01.2006-15.04")
     logfile := "jetstream-consumer-" + formattedTime + ".log"
@@ -69,10 +80,12 @@ func RunJetstreamConsumer(ctx context.Context, s *server.Server) {
 		log.Fatalf("failed to create client: %v", err)
 	}
 
-    // Process batches every 800 milliseconds
-	go processBatchQueue(ctx, s, 800 * time.Millisecond)
+    if !debugJetstreamOnly {
+        // Process batches every 800 milliseconds
+	    go processBatchQueue(ctx, s, 800 * time.Millisecond)
+    }
 
-	cursor := time.Now().Add(30 * -time.Second).UnixMicro()
+	// cursor := time.Now().Add(30 * -time.Second).UnixMicro()
 
 	// Every 5 seconds print the events read and bytes read and average event size
     // TODO: log this in some separate stats file
@@ -85,32 +98,39 @@ func RunJetstreamConsumer(ctx context.Context, s *server.Server) {
         log.Fatalf("Failed to open the specified log file %q: %s", logfile, err)
     }
     perfLogger := log.New(perfLogFile, "", log.LstdFlags|log.Lshortfile)
-    logIntervalSeconds := 30*60 
 	go func() {
         defer perfLogFile.Close()
-		ticker := time.NewTicker(time.Duration(logIntervalSeconds) * time.Second)
+		ticker := time.NewTicker(time.Duration(jetstreamPerfLogIntervalSeconds) * time.Second)
         var eventsReadPrev int64 = 0
-        var bytesReadPrev int64 = 0
+        var kilobytesReadPrev int64 = 0
 		for {
 			select {
 			case <-ticker.C:
 				eventsRead := c.EventsRead.Load()
-				bytesRead := c.BytesRead.Load()
+				kilobytesRead := c.BytesRead.Load()/1000
                 eventsDiff := eventsRead - eventsReadPrev
-                bytesDiff := bytesRead - bytesReadPrev
+                kilobytesDiff := kilobytesRead - kilobytesReadPrev
 
-				avgEventSize := bytesDiff / eventsDiff
-                eps := eventsDiff / int64(logIntervalSeconds)
-                mbps := bytesDiff / (int64(logIntervalSeconds) * 1000)
+                var avgEventSize int64
+                if eventsDiff > 0 {
+				    avgEventSize = (0100 * kilobytesDiff) / eventsDiff
+                } else {
+                    avgEventSize = 0 
+                }
+                eps := eventsDiff / int64(jetstreamPerfLogIntervalSeconds)
+                KBps := kilobytesDiff / int64(jetstreamPerfLogIntervalSeconds)
                 
-                perfLogger.Println(time.Now().Local(), "| total events in last 30min:", eventsRead, "| total MB in last 30min:", bytesDiff/1000, "|", eps, "events/s |", mbps, "MB/s |", avgEventSize, "avg event size")
+                perfLogger.Println(time.Now().Local(), "| total events in last", jetstreamPerfLogIntervalSeconds, "sec:", eventsDiff, "| total KB in last", jetstreamPerfLogIntervalSeconds, "sec:", kilobytesDiff, "|", eps, "events/s |", KBps, "KB/s |", avgEventSize, "B avg event size")
+                if debugJetstreamOnly {
+                    fmt.Println(time.Now().Local(), "| total events in last", jetstreamPerfLogIntervalSeconds, "sec:", eventsDiff, "| total KB in last", jetstreamPerfLogIntervalSeconds, "sec:", kilobytesDiff, "|", eps, "events/s |", KBps, "KB/s |", avgEventSize, "B avg event size")
+                }
                 eventsReadPrev = eventsRead
-                bytesReadPrev = bytesRead
+                kilobytesReadPrev = kilobytesDiff
 			}
 		}
 	}()
 
-	if err := c.ConnectAndRead(ctx, &cursor); err != nil {
+	if err := c.ConnectAndRead(ctx, nil/*&cursor*/); err != nil {
 		log.Fatalf("failed to connect: %v", err)
 	}
 
@@ -138,11 +158,13 @@ func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
 				return fmt.Errorf("failed to unmarshal post: %w", err)
 			}
             
-            event := PostEvent{
-                Uri:  "at://" + event.Did + "/" + event.Commit.Collection + "/" + event.Commit.RKey,
-                Text: post.Text,
+            if !debugJetstreamOnly {
+                event := PostEvent{
+                    Uri:  "at://" + event.Did + "/" + event.Commit.Collection + "/" + event.Commit.RKey,
+                    Text: post.Text,
+                }
+                eventQueue <- event
             }
-            eventQueue <- event
 		}
 	}
 
@@ -157,7 +179,6 @@ type BatchRequest struct {
 
 type ClassifierResponse struct {
    Labels []string  `json:"labels"`
-   Scores []float64 `json:"scores"` 
 }
 
 
@@ -227,7 +248,7 @@ func processBatch(ctx context.Context, s *server.Server) {
         labelVal := strings.ReplaceAll(strings.ToLower(labelText), " ", "-")
         label := atproto.LabelDefs_Label{
             Cts: time.Now().UTC().Format(time.RFC3339),
-            Src: "did:plc:tlyhc6cyka6ehsests75oivf", 
+            Src: "did:plc:tlyhc6cyka6ehsests75oivf", // Src: DID of the account creating the labels
             Uri: batch[i].Uri,
             Val: labelVal,
         }

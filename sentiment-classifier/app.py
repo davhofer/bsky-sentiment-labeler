@@ -24,5 +24,4 @@ def predict(request: SentimentRequest):
     results = sentiment_pipeline(request.texts, padding=True)
     return {
         "labels": [r["label"] for r in results],
-        "scores": [r["score"] for r in results],
     }
