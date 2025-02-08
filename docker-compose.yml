@@ -41,7 +41,13 @@ services:
       - "${CONFIG_FILE:-./config.yaml}:/config.yaml:ro"
     ports:
       - "${LISTEN_ADDR:-0.0.0.0:8080}:8080"
-    command: ["--config=/config.yaml", "--log-level=0", "--listen-addr=:8080"]
+    command:
+      [
+        "--config=/config.yaml",
+        "--log-file=./labeler.log",
+        "--log-level=0",
+        "--listen-addr=:8080",
+      ]
     depends_on:
       postgres:
         condition: service_healthy
