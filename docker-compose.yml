@@ -30,7 +30,7 @@ services:
       timeout: 5s
       retries: 3
       start_period: 1h
-      start_interval: 3s
+      start_interval: 10s
     restart: always
     volumes:
       - ./sentiment-classifier:/app

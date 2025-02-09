@@ -49,6 +49,7 @@ func RunJetstreamConsumer(ctx context.Context, s *server.Server) {
     // TODO: args from main func? context?
 
     debugJetstreamOnly = s == nil
+    fmt.Println("debugJetstreamOnly:", debugJetstreamOnly)
     
     formattedTime := time.Now().Format("02.01.2006-15.04")
     logfile := "jetstream-consumer-" + formattedTime + ".log"
@@ -186,6 +187,7 @@ var eventQueue = make(chan PostEvent, 500) // Buffered channel
 
 // processBatchQueue collects events and sends them in batches
 func processBatchQueue(ctx context.Context, s *server.Server, interval time.Duration) {
+    fmt.Println("Running processBatchQueue")
 	ticker := time.NewTicker(interval) // Process every 0.5s
 	defer ticker.Stop()
 
@@ -198,6 +200,7 @@ func processBatchQueue(ctx context.Context, s *server.Server, interval time.Dura
 
 // processBatch collects queued events and sends them to the API
 func processBatch(ctx context.Context, s *server.Server) {
+    fmt.Println("Running processBatch")
 	var batch []PostEvent
 
 	// Collect all available events from the queue
@@ -251,7 +254,9 @@ func processBatch(ctx context.Context, s *server.Server) {
             Val: labelVal,
         }
         // TODO: write to DB
+        fmt.Println("Writing to db...")
         if s != nil {
+            fmt.Println("AddLabel")
             s.AddLabel(ctx, label) 
         }
     }
