@@ -53,7 +53,7 @@ services:
     command:
       [
         "--config=/config.yaml",
-        "--log-file=/data/logs/labeler.log",
+    #        "--log-file=/data/logs/labeler.log",
         "--log-level=0",
         "--listen-addr=:8080",
       ]

@@ -204,15 +204,18 @@ func processBatch(ctx context.Context, s *server.Server) {
 	var batch []PostEvent
 
 	// Collect all available events from the queue
+    EmptyQueueLoop:
 	for {
 		select {
 		case event := <-eventQueue:
 			batch = append(batch, event)
 		default:
 			// No more items in queue
-			break
+			break EmptyQueueLoop
 		}
 	}
+
+    fmt.Println("Exiting processBatch loop...")
 
 	// If there are no events, return early
 	if len(batch) == 0 {
