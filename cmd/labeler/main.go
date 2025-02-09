@@ -49,6 +49,8 @@ func runMain(ctx context.Context) error {
 		return fmt.Errorf("instantiating a server: %w", err)
 	}
 
+    fmt.Println("Server created")
+
 	server.SetAllowedLabels(config.LabelValues())
 
 	if config.Password != "" && len(config.Labels.LabelValueDefinitions) > 0 {
@@ -60,6 +62,7 @@ func runMain(ctx context.Context) error {
 	}
 
     // TODO: improve frontend?
+    fmt.Println("TODO: configure admin and metrics addresses")
 	if *adminAddr != "" {
 		frontend := simpleapi.New(server)
 		mux := http.NewServeMux()
@@ -83,6 +86,8 @@ func runMain(ctx context.Context) error {
 		}()
 	}
 
+    fmt.Println("Starting jetstream consumer")
+
     // TODO: correct?
     go ingestion.RunJetstreamConsumer(ctx, server)
 
@@ -100,6 +105,7 @@ func runMain(ctx context.Context) error {
 }
 
 func main() {
+    fmt.Println("Main is running")
 	flag.Parse()
 
     if *logFile == "" {

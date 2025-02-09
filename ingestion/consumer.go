@@ -121,9 +121,7 @@ func RunJetstreamConsumer(ctx context.Context, s *server.Server) {
                 KBps := kilobytesDiff / int64(jetstreamPerfLogIntervalSeconds)
                 
                 perfLogger.Println(time.Now().Local(), "| total events in last", jetstreamPerfLogIntervalSeconds, "sec:", eventsDiff, "| total KB in last", jetstreamPerfLogIntervalSeconds, "sec:", kilobytesDiff, "|", eps, "events/s |", KBps, "KB/s |", avgEventSize, "B avg event size")
-                if debugJetstreamOnly {
-                    fmt.Println(time.Now().Local(), "| total events in last", jetstreamPerfLogIntervalSeconds, "sec:", eventsDiff, "| total KB in last", jetstreamPerfLogIntervalSeconds, "sec:", kilobytesDiff, "|", eps, "events/s |", KBps, "KB/s |", avgEventSize, "B avg event size")
-                }
+                fmt.Println(time.Now().Local(), "| total events in last", jetstreamPerfLogIntervalSeconds, "sec:", eventsDiff, "| total KB in last", jetstreamPerfLogIntervalSeconds, "sec:", kilobytesDiff, "|", eps, "events/s |", KBps, "KB/s |", avgEventSize, "B avg event size")
                 eventsReadPrev = eventsRead
                 kilobytesReadPrev = kilobytesDiff
 			}

@@ -17,5 +17,3 @@ RUN mkdir -p logs
 
 # Run the application
 CMD ["uvicorn", "app:app", "--host", "localhost", "--port", "7080"]
-
-HEALTHCHECK --interval=60s --start-interval=10s --timeout=5s --retries=3 CMD curl -f http://localhost:7080/ || exit 1
