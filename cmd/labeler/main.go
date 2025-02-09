@@ -88,9 +88,6 @@ func runMain(ctx context.Context) error {
 
     fmt.Println("Starting jetstream consumer")
 
-    // TODO: correct?
-    go ingestion.RunJetstreamConsumer(ctx, server)
-
 	mux := http.NewServeMux()
 	mux.Handle("/xrpc/com.atproto.label.subscribeLabels", server.Subscribe())
 	mux.Handle("/xrpc/com.atproto.label.queryLabels", server.Query())
