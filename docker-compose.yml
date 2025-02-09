@@ -45,7 +45,7 @@ services:
       - "${LISTEN_ADDR:-0.0.0.0:8080}:8080"
     command:
       [
-        "--config=/config.yaml",
+        "--config=./config.yaml",
         "--log-file=./labeler.log",
         "--log-level=0",
         "--listen-addr=:8080",
